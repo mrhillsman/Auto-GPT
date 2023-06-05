@@ -177,7 +177,7 @@ jobs:
             git add $score_file
             git commit -m "Update challenge scores"
             if [ "${{ startsWith(github.event_name, 'pull_request') }}" = "true" ]; then
-              updated_score_branch="update-score-${{ github.event.pull_request.number }}-$(date +'%Y%m%d%H%M%S')"
+              updated_score_branch="update-score-${{ github.event.pull_request.number }}"
               git checkout -b $updated_score_branch
               git remote add base_repo https://github.com/${{ github.event.pull_request.base.repo.owner.login }}/${{ github.event.pull_request.base.repo.name }}.git
               git push -f base_repo $updated_score_branch
@@ -233,12 +233,12 @@ jobs:
         run: |
           base_repo_owner=${{ github.event.pull_request.base.repo.owner.login }}
           base_repo_name=${{ github.event.pull_request.base.repo.name }}
-          updated_score_branch="update-score-${{ github.event.pull_request.number }}"
+          updated_score_branch=${{steps.push_challenge_scores.outputs.updated_score_branch}}
           
           pr_number=$(gh api repos/$base_repo_owner/$base_repo_name/pulls -q ".[] | select(.head.ref == \"$updated_score_branch\") | .number")
           
           # If PR does not exist or is closed then create a new PR
-          if [ -n "steps.push_challenge_scores.outputs.updated_score_branch" ]; then
+          if [ -n "$updated_score_branch" ]; then
             if [ -n "$pr_number" ]; then
               gh api -X PATCH repos/$base_repo_owner/$base_repo_name/pulls/$pr_number -f state=closed
             fi
@@ -251,7 +251,7 @@ jobs:
           
           if [ -z "$pr_number" ] || [ "$(gh api repos/$base_repo_owner/$base_repo_name/pulls/$pr_number --jq ".state")" = "closed" ]; then
             pr_url=$(gh pr create --title "Update Score In Pull Request Number ${{ github.event.pull_request.number }}" \
-              --head "${{ github.event.pull_request.base.repo.owner.login }}:${{steps.push_challenge_scores.outputs.updated_score_branch}}" \
+              --head "${{ github.event.pull_request.base.repo.owner.login }}:$updated_score_branch" \
               --base "${{ github.event.pull_request.head.ref }}" \
               --body "This pull request updates the current score of Auto-GPT. Please check the files changed and merge the pull request." \
               --repo ${{ github.event.pull_request.head.repo.full_name }})
