@@ -1,7 +1,7 @@
 name: PR Status Checker
 on:
   workflow_run:
-    workflows: ["*"]
+    workflows: ["alltonone"]
     types:
       - completed
 
